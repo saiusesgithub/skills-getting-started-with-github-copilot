@@ -58,7 +58,33 @@ document.addEventListener("DOMContentLoaded", () => {
           details.participants.forEach((p) => {
             const li = document.createElement("li");
             li.className = "participant-item";
-            li.textContent = p;
+
+            // Participant name span
+            const nameSpan = document.createElement("span");
+            nameSpan.textContent = p;
+            nameSpan.className = "participant-name";
+
+            // Delete button (icon)
+            const deleteBtn = document.createElement("button");
+            deleteBtn.className = "delete-participant-btn";
+            deleteBtn.title = `Remove ${p}`;
+            deleteBtn.innerHTML = `
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 8.5V14.5C6 15.3284 6.67157 16 7.5 16H12.5C13.3284 16 14 15.3284 14 14.5V8.5" stroke="#c62828" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M4 5.5H16" stroke="#c62828" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M8.5 9.5V13.5" stroke="#c62828" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M11.5 9.5V13.5" stroke="#c62828" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M9 5.5V4.5C9 3.94772 9.44772 3.5 10 3.5C10.5523 3.5 11 3.94772 11 4.5V5.5" stroke="#c62828" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            `;
+            deleteBtn.addEventListener("click", (e) => {
+              e.preventDefault();
+              // Unregister logic will be implemented in next step
+              unregisterParticipant(name, p);
+            });
+
+            li.appendChild(nameSpan);
+            li.appendChild(deleteBtn);
             participantsList.appendChild(li);
           });
         } else {
@@ -66,6 +92,28 @@ document.addEventListener("DOMContentLoaded", () => {
           li.className = "participant-item none";
           li.textContent = "No participants yet";
           participantsList.appendChild(li);
+        }
+
+        // Unregister function
+        async function unregisterParticipant(activity, email) {
+          if (!confirm(`Remove ${email} from ${activity}?`)) return;
+          try {
+            const response = await fetch(
+              `/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`,
+              {
+                method: "POST", // Change to DELETE if backend expects DELETE
+              }
+            );
+            if (!response.ok) {
+              const result = await response.json();
+              alert(result.detail || "Failed to unregister participant.");
+            }
+            // Refresh activities list
+            fetchActivities();
+          } catch (error) {
+            alert("Failed to unregister participant. Please try again.");
+            console.error("Error unregistering participant:", error);
+          }
         }
 
         participantsSection.appendChild(participantsList);
@@ -112,6 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities(); // Refresh activities list so UI updates
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
